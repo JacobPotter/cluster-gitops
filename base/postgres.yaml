@@ -42,6 +42,13 @@ spec:
         app: postgres
     spec:
       terminationGracePeriodSeconds: 60
+      initContainers:
+        - name: clear-stale-pid
+          image: postgres:16
+          command: ["sh", "-c", "rm -f /var/lib/postgresql/data/pgdata/postmaster.pid"]
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
       containers:
         - name: postgres
           image: postgres:16
