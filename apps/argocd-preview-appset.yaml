@@ -1,6 +1,7 @@
 # One preview environment per open PR labelled "preview" in JacobPotter/poke-db.
-# Each gets namespace poke-db-pr-<N>, its own Postgres, and the pr-<N> images
-# published by CI. The refresh-db-seed PostSync hook seeds it on first sync.
+# Each gets namespace poke-db-pr-<N>, its own Postgres, and commit-specific
+# images (sha-<short>) published by CI. Routes are exposed at /pr-<N>/ on poke-db.pttr-dev-lab.
+# The refresh-db-seed PostSync hook seeds it on first sync.
 # Removing the label or closing the PR deletes the Application; delete the
 # leftover namespace with: kubectl delete ns poke-db-pr-<N>
 apiVersion: argoproj.io/v1alpha1
@@ -40,8 +41,35 @@ spec:
         kustomize:
           namespace: 'poke-db-pr-{{.number}}'
           images:
-            - 'ghcr.io/jacobpotter/poke-db-api:pr-{{.number}}'
-            - 'ghcr.io/jacobpotter/poke-db-frontend:pr-{{.number}}'
+            - 'ghcr.io/jacobpotter/poke-db-api=ghcr.io/jacobpotter/poke-db-api:sha-{{.head_short_sha}}'
+            - 'ghcr.io/jacobpotter/poke-db-frontend=ghcr.io/jacobpotter/poke-db-frontend:sha-{{.head_short_sha}}'
+          patches:
+            - target:
+                kind: HTTPRoute
+                name: frontend
+              patch: |-
+                apiVersion: gateway.networking.k8s.io/v1
+                kind: HTTPRoute
+                metadata:
+                  name: frontend
+                spec:
+                  rules:
+                    - matches:
+                        - path:
+                            type: PathPrefix
+                            value: /pr-{{.number}}/
+                        - path:
+                            type: PathPrefix
+                            value: /pr-{{.number}}
+                      filters:
+                        - type: URLRewrite
+                          urlRewrite:
+                            path:
+                              type: ReplacePrefixMatch
+                              replacePrefixMatch: /
+                      backendRefs:
+                        - name: frontend
+                          port: 80
       destination:
         server: https://kubernetes.default.svc
         namespace: 'poke-db-pr-{{.number}}'
