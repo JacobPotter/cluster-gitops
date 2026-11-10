@@ -3,9 +3,9 @@ kind: ConfigMap
 metadata:
   name: api-config
 data:
-  DB_HOST: postgres
-  DB_NAME: postgres
-  DB_USER: postgres
+  DB_HOST: "postgres"
+  DB_NAME: "postgres"
+  DB_USER: "postgres"
 ---
 apiVersion: v1
 kind: Secret
@@ -13,7 +13,7 @@ metadata:
   name: api-secret
 type: Opaque
 stringData:
-  DB_PASSWORD: postgres
+  DB_PASSWORD: "postgres"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,12 +29,31 @@ spec:
       labels:
         app: api
     spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16
+          command: ["sh", "-c", "until pg_isready -h \"$DB_HOST\" -U \"$DB_USER\"; do sleep 2; done"]
+          envFrom:
+            - configMapRef:
+                name: api-config
       containers:
         - name: api
           image: ghcr.io/jacobpotter/poke-db-api:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
           env:
             - name: DB_HOST
               valueFrom:
