@@ -42,7 +42,7 @@ poke-db-gitops/
 
 2. **Pull Request Preview Environments**:
    - The ArgoCD ApplicationSet (`apps/argocd-preview-appset.yaml`) monitors PRs in `JacobPotter/poke-db` labeled `preview`.
-   - For each matching PR, an ephemeral environment `poke-db-pr-<N>` is spun up referencing `overlays/preview`, deploying commit-specific images (`:sha-{{.head_short_sha}}`), and exposing traffic under `/pr-<N>/` on `poke-db.pttr-dev-lab` via Envoy Gateway URL rewriting (`ReplacePrefixMatch: /`).
+   - For each matching PR, an ephemeral environment `poke-db-pr-<N>` is spun up referencing `overlays/preview`, deploying commit-specific images (`:sha-{{.head_short_sha}}`), and exposing traffic under `pr-<N>.poke-db.pttr-dev-lab` via Envoy Gateway.
    - Pushing new commits to an open PR updates `head_short_sha`, automatically triggering a rolling deployment in the preview environment.
    - When the PR is closed or the `preview` label is removed, ArgoCD automatically cleans up the Application.
 

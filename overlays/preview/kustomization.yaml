@@ -1,5 +1,5 @@
 # Per-PR preview environments.
-# Namespace, image tags (sha-<short>), and HTTPRoute path prefix routing (/pr-<N>/ -> /)
+# Namespace, image tags (sha-<short>), and HTTPRoute hostname (pr-<N>.poke-db.pttr-dev-lab)
 # are dynamically configured per PR by the poke-db-previews ApplicationSet (apps/argocd-preview-appset.yaml).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
