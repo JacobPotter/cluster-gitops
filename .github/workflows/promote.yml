@@ -18,7 +18,7 @@ jobs:
           ref: main
 
       - name: Update Prod Image Tags
-        working-directory: overlays/prod
+        working-directory: apps/poke-db/overlays/prod
         run: |
           kustomize edit set image \
             "ghcr.io/jacobpotter/poke-db-api=${{ github.event.client_payload.api_image }}" \

@@ -11,9 +11,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/JacobPotter/poke-db-gitops.git
+    repoURL: https://github.com/JacobPotter/cluster-gitops.git
     targetRevision: main
-    path: overlays/prod
+    path: apps/poke-db/overlays/prod
   destination:
     server: https://kubernetes.default.svc
     namespace: poke-db
