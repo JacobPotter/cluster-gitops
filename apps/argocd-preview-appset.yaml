@@ -55,6 +55,7 @@ spec:
                 spec:
                   hostnames:
                     - "pr-{{.number}}.poke-db.pttr-dev-lab"
+                    - "pr-{{.number}}.poke-db.webwizardssoftware.com"
                   rules:
                     - matches:
                         - path:

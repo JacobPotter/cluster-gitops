@@ -10,6 +10,7 @@ spec:
       namespace: default
   hostnames:
     - "poke-db.pttr-dev-lab"
+    - "poke-db.webwizardssoftware.com"
   rules:
     - matches:
         - path:
