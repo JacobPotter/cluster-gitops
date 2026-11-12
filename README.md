@@ -65,7 +65,7 @@ cluster-gitops/
    - The Argo CD ApplicationSet (`bootstrap/poke-db-previews.yaml`) monitors PRs in `JacobPotter/poke-db` labeled
      `preview`.
    - For each matching PR, an ephemeral environment `poke-db-pr-<N>` is created referencing
-     `apps/poke-db/overlays/preview`, deploying commit-specific images (`:sha-{{.head_short_sha}}`), and exposing
+     `apps/poke-db/overlays/preview`, deploying PR-specific images (`:pr-<N>`), and exposing
      traffic under `pr-<N>.poke-db.pttr-dev-lab` and `pr-<N>.poke-db.webwizardssoftware.com`.
    - Removing the `preview` label or closing the PR automatically destroys the preview environment.
 

@@ -1,6 +1,6 @@
 # One preview environment per open PR labelled "preview" in JacobPotter/poke-db.
-# Each gets namespace poke-db-pr-<N>, its own Postgres, and commit-specific
-# images (sha-<short>) published by CI. Routes are exposed at pr-<N>.poke-db.pttr-dev-lab and pr-<N>.poke-db.webwizardssoftware.com.
+# Each gets namespace poke-db-pr-<N>, its own Postgres, and PR-specific
+# images (pr-<N>) published by CI. Routes are exposed at pr-<N>.poke-db.pttr-dev-lab and pr-<N>.poke-db.webwizardssoftware.com.
 # The refresh-db-seed PostSync hook seeds it on first sync.
 # Removing the label or closing the PR deletes the Application; delete the
 # leftover namespace with: kubectl delete ns poke-db-pr-<N>
@@ -37,8 +37,8 @@ spec:
         kustomize:
           namespace: 'poke-db-pr-{{.number}}'
           images:
-            - 'ghcr.io/jacobpotter/poke-db-api=ghcr.io/jacobpotter/poke-db-api:sha-{{.head_short_sha}}'
-            - 'ghcr.io/jacobpotter/poke-db-frontend=ghcr.io/jacobpotter/poke-db-frontend:sha-{{.head_short_sha}}'
+            - 'ghcr.io/jacobpotter/poke-db-api=ghcr.io/jacobpotter/poke-db-api:pr-{{.number}}'
+            - 'ghcr.io/jacobpotter/poke-db-frontend=ghcr.io/jacobpotter/poke-db-frontend:pr-{{.number}}'
           patches:
             - target:
                 kind: HTTPRoute
