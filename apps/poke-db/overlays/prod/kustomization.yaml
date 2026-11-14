@@ -9,7 +9,7 @@ resources:
 images:
 - name: ghcr.io/jacobpotter/poke-db-api
   newName: ghcr.io/jacobpotter/poke-db-api
-  newTag: sha-31b45ed
+  newTag: sha-8c0036f
 - name: ghcr.io/jacobpotter/poke-db-frontend
   newName: ghcr.io/jacobpotter/poke-db-frontend
-  newTag: sha-31b45ed
+  newTag: sha-8c0036f
