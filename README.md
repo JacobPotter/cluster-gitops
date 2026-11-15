@@ -13,6 +13,10 @@ cluster-gitops/
 │   └── workflows/
 │       └── promote.yml                      # Production image promotion workflow (apps/poke-db/overlays/prod)
 ├── apps/                                    # Application workloads
+│   ├── open-webui/                          # Open WebUI (Local AI chat interface)
+│   │   ├── base/                            # Deployment, Service, PVC, HTTPRoute
+│   │   └── overlays/
+│   │       └── prod/                        # Production namespace and overlay
 │   └── poke-db/                             # PokeDB application
 │       ├── base/                            # Base Deployment, Service, ConfigMap, HTTPRoute, Postgres
 │       └── overlays/
@@ -31,13 +35,45 @@ cluster-gitops/
 │   │   ├── gateway.yaml                     # Gateway definition (HTTP :80, HTTPS :443 + TLS cert)
 │   │   ├── http-redirects.yaml              # Public HTTP-to-HTTPS 301 redirection route
 │   │   └── kustomization.yaml
+│   ├── minio/                               # MinIO S3 object storage
+│   │   ├── deployment.yaml                  # Standalone MinIO deployment (Recreate)
+│   │   ├── service.yaml                     # ClusterIP service (S3 API :9000, Console :9001)
+│   │   ├── pvc.yaml                         # Persistent storage claim (10Gi RWO)
+│   │   ├── secret.yaml                      # Root credentials
+│   │   ├── secret.example.yaml              # Root credentials template
+│   │   └── kustomization.yaml
 │   └── kustomization.yaml                   # Platform root kustomization
 ├── bootstrap/                               # Argo CD Root Applications
+│   ├── open-webui.yaml                      # Application managing Open WebUI (apps/open-webui/overlays/prod)
 │   ├── poke-db-prod.yaml                    # Production PokeDB Application
 │   ├── poke-db-previews.yaml                # ApplicationSet for PR previews
-│   └── platform.yaml                        # Application managing platform/
+│   ├── platform.yaml                        # Application managing platform/
+│   └── minio.yaml                           # Application managing platform/minio/
 └── README.md
 ```
+
+---
+
+## Storage & Internal Services
+
+### MinIO Object Storage
+MinIO provides internal S3-compatible object storage for cluster workloads.
+
+- **S3 API Endpoint**: `http://minio.minio.svc.cluster.local:9000`
+- **Web Console Endpoint**: `http://minio.minio.svc.cluster.local:9001`
+- **Console Access (Port-Forwarding)**:
+  ```bash
+  kubectl port-forward -n minio svc/minio 9001:9001
+  ```
+- **Credentials**: Configured via `minio-secret` in namespace `minio` (`MINIO_ROOT_USER` and `MINIO_ROOT_PASSWORD`).
+
+### Open WebUI (Local AI Interface)
+Open WebUI provides a ChatGPT-compatible web interface connected to the host Ollama runtime.
+
+- **Internal Service Endpoint**: `http://open-webui.open-webui.svc.cluster.local:8080`
+- **Host Ollama Integration**: Connected to Ollama via downward API (`status.hostIP:11434`).
+- **Persistent Storage**: Backed by a 10Gi RWO volume for sqlite metadata, chats, and user settings.
+- **Routing**: Strictly internal LAN access via `http://open-webui.pttr-dev-lab`, `http://chat.pttr-dev-lab`, or `http://ai.pttr-dev-lab` (no external exposure).
 
 ---
 
@@ -77,11 +113,13 @@ Render all manifests locally with Kustomize:
 
 ```bash
 # Applications
+kubectl kustomize apps/open-webui/overlays/prod
 kubectl kustomize apps/poke-db/overlays/prod
 kubectl kustomize apps/poke-db/overlays/preview
 
 # Platform & Ingress
 kubectl kustomize platform/argocd
 kubectl kustomize platform/gateway
+kubectl kustomize platform/minio
 kubectl kustomize platform/
 ```
