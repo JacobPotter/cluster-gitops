@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ArgocdSettings">
+    <option name="kubeconfigPath" value="$USER_HOME$/.kube/config" />
+    <option name="selectedServerId" value="1f8f9220-8b29-42b4-a934-bf6c2f44d50e" />
+    <servers>
+      <ArgocdServerConfig>
+        <option name="authType" value="CREDENTIALS" />
+        <option name="id" value="1f8f9220-8b29-42b4-a934-bf6c2f44d50e" />
+        <option name="insecureTls" value="true" />
+        <option name="name" value="Dev lab" />
+        <option name="url" value="http://argo.pttr-dev-lab" />
+      </ArgocdServerConfig>
+    </servers>
+  </component>
+</project>
