@@ -65,9 +65,35 @@ if command -v vault &> /dev/null && [[ -n "${VAULT_ADDR:-}" ]]; then
 elif command -v kubectl &> /dev/null; then
   echo "🚀 Using 'kubectl exec' against ${VAULT_NAMESPACE}/${VAULT_POD}..."
   USE_KUBECTL=true
+  
   if ! kubectl get pod "${VAULT_POD}" -n "${VAULT_NAMESPACE}" &> /dev/null; then
     echo "⚠️  Pod ${VAULT_POD} not found in namespace ${VAULT_NAMESPACE}."
-    echo "   Ensure platform/vault manifests are applied to the cluster."
+    echo "⏳ Waiting up to 30s for ${VAULT_POD} to appear..."
+    for i in {1..30}; do
+      if kubectl get pod "${VAULT_POD}" -n "${VAULT_NAMESPACE}" &> /dev/null; then
+        break
+      fi
+      sleep 1
+    done
+  fi
+
+  if ! kubectl get pod "${VAULT_POD}" -n "${VAULT_NAMESPACE}" &> /dev/null; then
+    echo "❌ Error: Pod '${VAULT_POD}' does not exist in namespace '${VAULT_NAMESPACE}'."
+    echo ""
+    echo "👉 To resolve this, apply the Vault platform manifests to your cluster first:"
+    echo "   kubectl apply -k platform/vault"
+    echo "   (or trigger an ArgoCD synchronization of the platform application)"
+    exit 1
+  fi
+
+  echo "⏳ Waiting for pod ${VAULT_POD} to reach Running / Ready state..."
+  if ! kubectl wait --for=condition=ready "pod/${VAULT_POD}" -n "${VAULT_NAMESPACE}" --timeout=60s &> /dev/null; then
+    POD_PHASE=$(kubectl get pod "${VAULT_POD}" -n "${VAULT_NAMESPACE}" -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")
+    if [[ "${POD_PHASE}" != "Running" ]]; then
+      echo "❌ Error: Pod ${VAULT_POD} is in phase '${POD_PHASE}' (expected 'Running')."
+      echo "   Check pod events: kubectl describe pod -n ${VAULT_NAMESPACE} ${VAULT_POD}"
+      exit 1
+    fi
   fi
 else
   echo "❌ Error: Neither 'vault' nor 'kubectl' CLI is available."
@@ -78,16 +104,24 @@ fi
 # 1. Check Initialization Status
 # ------------------------------------------------------------------------------
 echo "🔍 Checking Vault initialization status..."
-INIT_STATUS=$(vault_cmd status -format=json 2>/dev/null || true)
-
-if [[ -z "${INIT_STATUS}" ]]; then
-  echo "⏳ Vault is starting up or unreachable. Waiting for service..."
-  sleep 3
+INIT_STATUS=""
+for attempt in {1..10}; do
   INIT_STATUS=$(vault_cmd status -format=json 2>/dev/null || true)
+  if [[ -n "${INIT_STATUS}" ]] && echo "${INIT_STATUS}" | jq -e '.initialized != null' &>/dev/null; then
+    break
+  fi
+  echo "⏳ Vault is starting up or unreachable. Waiting for service (attempt ${attempt}/10)..."
+  sleep 3
+done
+
+if [[ -z "${INIT_STATUS}" ]] || ! echo "${INIT_STATUS}" | jq -e '.initialized != null' &>/dev/null; then
+  echo "❌ Error: Could not retrieve valid initialization status from Vault."
+  echo "   Inspect container logs: kubectl logs -n ${VAULT_NAMESPACE} ${VAULT_POD}"
+  exit 1
 fi
 
-IS_INITIALIZED=$(echo "${INIT_STATUS}" | jq -r '.initialized // false' 2>/dev/null || echo "false")
-IS_SEALED=$(echo "${INIT_STATUS}" | jq -r '.sealed // true' 2>/dev/null || echo "true")
+IS_INITIALIZED=$(echo "${INIT_STATUS}" | jq -r '.initialized')
+IS_SEALED=$(echo "${INIT_STATUS}" | jq -r '.sealed')
 
 UNSEAL_KEY=""
 ROOT_TOKEN=""
