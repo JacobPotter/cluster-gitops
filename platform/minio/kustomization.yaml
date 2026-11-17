@@ -4,7 +4,8 @@ kind: Kustomization
 namespace: minio
 
 resources:
-  - secret.yaml
   - pvc.yaml
   - deployment.yaml
   - service.yaml
+  - vault-auth.yaml
+  - vault-secrets.yaml

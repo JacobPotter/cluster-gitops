@@ -7,14 +7,6 @@ data:
   DB_NAME: "postgres"
   DB_USER: "postgres"
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: api-secret
-type: Opaque
-stringData:
-  DB_PASSWORD: "postgres"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,6 +21,7 @@ spec:
       labels:
         app: api
     spec:
+      serviceAccountName: poke-db-sa
       initContainers:
         - name: wait-for-postgres
           image: postgres:16

@@ -7,3 +7,5 @@ resources:
   - argocd-rbac-cm.yaml
   - argocd-notifications-cm.yaml
   - httproute.yaml
+  - vault-auth.yaml
+  - vault-secrets.yaml

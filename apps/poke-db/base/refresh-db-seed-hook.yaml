@@ -16,6 +16,7 @@ spec:
       labels:
         app: refresh-db-seed
     spec:
+      serviceAccountName: poke-db-sa
       restartPolicy: OnFailure
       initContainers:
         # Wait until postgres is ready and accepts connections.
