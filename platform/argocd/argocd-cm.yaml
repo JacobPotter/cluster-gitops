@@ -8,37 +8,59 @@ metadata:
     app.kubernetes.io/part-of: argocd
 data:
   url: "https://argo.webwizardssoftware.com"
-  resource.customizations.health.secrets.hashicorp.com_VaultStaticSecret: |
+  resource.customizations.health.secrets.hashicorp.com_VaultConnection: |
     hs = {}
-    if obj.status ~= nil and obj.status.conditions ~= nil then
-      for _, condition in ipairs(obj.status.conditions) do
-        if condition.type == "SecretSynced" and condition.status == "True" then
-          hs.status = "Healthy"
-          hs.message = condition.message or "Secret synced successfully"
-          return hs
-        elseif condition.type == "SecretSyncError" and condition.status == "True" then
-          hs.status = "Degraded"
-          hs.message = condition.message or "Secret synchronization error"
-          return hs
+    if obj.status ~= nil then
+      if obj.status.valid == true then
+        hs.status = "Healthy"
+        hs.message = "VaultConnection is valid"
+        return hs
+      elseif obj.status.valid == false or (obj.status.error ~= nil and obj.status.error ~= "") then
+        hs.status = "Degraded"
+        hs.message = obj.status.error or "VaultConnection is invalid"
+        return hs
+      end
+      if obj.status.conditions ~= nil then
+        for _, condition in ipairs(obj.status.conditions) do
+          if condition.type == "Accepted" and condition.status == "True" then
+            hs.status = "Healthy"
+            hs.message = condition.message or "VaultConnection is accepted"
+            return hs
+          elseif condition.type == "Accepted" and condition.status == "False" then
+            hs.status = "Degraded"
+            hs.message = condition.message or "VaultConnection rejected"
+            return hs
+          end
         end
       end
     end
     hs.status = "Progressing"
-    hs.message = "Waiting for secret synchronization"
+    hs.message = "Waiting for connection status"
     return hs
 
   resource.customizations.health.secrets.hashicorp.com_VaultAuth: |
     hs = {}
-    if obj.status ~= nil and obj.status.conditions ~= nil then
-      for _, condition in ipairs(obj.status.conditions) do
-        if condition.type == "Valid" and condition.status == "True" then
-          hs.status = "Healthy"
-          hs.message = condition.message or "VaultAuth is valid"
-          return hs
-        elseif condition.type == "Valid" and condition.status == "False" then
-          hs.status = "Degraded"
-          hs.message = condition.message or "VaultAuth validation failed"
-          return hs
+    if obj.status ~= nil then
+      if obj.status.valid == true then
+        hs.status = "Healthy"
+        hs.message = "VaultAuth is valid"
+        return hs
+      elseif obj.status.valid == false or (obj.status.error ~= nil and obj.status.error ~= "") then
+        hs.status = "Degraded"
+        hs.message = obj.status.error or "VaultAuth validation failed"
+        return hs
+      end
+      if obj.status.conditions ~= nil then
+        for _, condition in ipairs(obj.status.conditions) do
+          if condition.type == "Valid" and condition.status == "True" then
+            hs.status = "Healthy"
+            hs.message = condition.message or "VaultAuth is valid"
+            return hs
+          elseif condition.type == "Valid" and condition.status == "False" then
+            hs.status = "Degraded"
+            hs.message = condition.message or "VaultAuth validation failed"
+            return hs
+          end
         end
       end
     end
@@ -46,23 +68,68 @@ data:
     hs.message = "Waiting for auth validation"
     return hs
 
-  resource.customizations.health.secrets.hashicorp.com_VaultConnection: |
+  resource.customizations.health.secrets.hashicorp.com_VaultStaticSecret: |
     hs = {}
-    if obj.status ~= nil and obj.status.conditions ~= nil then
-      for _, condition in ipairs(obj.status.conditions) do
-        if condition.type == "Accepted" and condition.status == "True" then
-          hs.status = "Healthy"
-          hs.message = condition.message or "VaultConnection is accepted"
-          return hs
-        elseif condition.type == "Accepted" and condition.status == "False" then
-          hs.status = "Degraded"
-          hs.message = condition.message or "VaultConnection rejected"
-          return hs
+    if obj.status ~= nil then
+      if obj.status.secretMAC ~= nil and obj.status.secretMAC ~= "" then
+        hs.status = "Healthy"
+        hs.message = "Secret synced successfully"
+        return hs
+      elseif obj.status.error ~= nil and obj.status.error ~= "" then
+        hs.status = "Degraded"
+        hs.message = obj.status.error
+        return hs
+      end
+      if obj.status.conditions ~= nil then
+        for _, condition in ipairs(obj.status.conditions) do
+          if condition.type == "SecretSynced" and condition.status == "True" then
+            hs.status = "Healthy"
+            hs.message = condition.message or "Secret synced successfully"
+            return hs
+          elseif condition.type == "SecretSyncError" and condition.status == "True" then
+            hs.status = "Degraded"
+            hs.message = condition.message or "Secret synchronization error"
+            return hs
+          end
         end
       end
     end
     hs.status = "Progressing"
-    hs.message = "Waiting for connection status"
+    hs.message = "Waiting for secret synchronization"
+    return hs
+
+  resource.customizations.health.secrets.hashicorp.com_VaultDynamicSecret: |
+    hs = {}
+    if obj.status ~= nil then
+      if obj.status.secretMAC ~= nil and obj.status.secretMAC ~= "" then
+        hs.status = "Healthy"
+        hs.message = "Dynamic secret synced successfully"
+        return hs
+      elseif obj.status.error ~= nil and obj.status.error ~= "" then
+        hs.status = "Degraded"
+        hs.message = obj.status.error
+        return hs
+      end
+    end
+    hs.status = "Progressing"
+    hs.message = "Waiting for dynamic secret synchronization"
+    return hs
+
+  resource.customizations.health.secrets.hashicorp.com_VaultPKISecret: |
+    hs = {}
+    if obj.status ~= nil then
+      if obj.status.secretMAC ~= nil and obj.status.secretMAC ~= "" then
+        hs.status = "Healthy"
+        hs.message = "PKI certificate synced successfully"
+        return hs
+      elseif obj.status.error ~= nil and obj.status.error ~= "" then
+        hs.status = "Degraded"
+        hs.message = obj.status.error
+        return hs
+      end
+    end
+    hs.status = "Progressing"
+    hs.message = "Waiting for PKI secret synchronization"
     return hs
 
   resource.customizations.ignoreResourceUpdates.ConfigMap: |
