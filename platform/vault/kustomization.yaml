@@ -4,7 +4,4 @@ kind: Kustomization
 namespace: vault
 
 resources:
-  - vault-server.yaml
-  - vault-secrets-operator.yaml
-  - vault-connection.yaml
   - httproute.yaml

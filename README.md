@@ -53,14 +53,13 @@ cluster-gitops/
 │   │   ├── vault-auth.yaml                  # VaultAuth for MinIO credentials
 │   │   ├── vault-secrets.yaml               # VaultStaticSecret synchronizing minio-secret
 │   │   └── kustomization.yaml
-│   ├── vault/                               # HashiCorp Vault CE & Vault Secrets Operator
-│   │   ├── vault-server.yaml                # StatefulSet, Service, PVC, ConfigMap, Delegator RBAC
-│   │   ├── vault-secrets-operator.yaml      # VSO controller deployment and CRDs
-│   │   ├── vault-connection.yaml            # Default cluster-local VaultConnection
+│   ├── vault/                               # HashiCorp Vault CE UI Gateway Routes
 │   │   ├── httproute.yaml                   # Vault UI Gateway HTTPRoutes (HTTP & HTTPS)
 │   │   └── kustomization.yaml
 │   └── kustomization.yaml                   # Platform root kustomization
 ├── bootstrap/                               # Argo CD Root Applications
+│   ├── vault.yaml                           # Official HashiCorp Vault Helm chart Application
+│   ├── vault-secrets-operator.yaml          # Official HashiCorp VSO Helm chart Application
 │   ├── open-webui.yaml                      # Application managing Open WebUI (apps/open-webui/overlays/prod)
 │   ├── poke-db-prod.yaml                    # Production PokeDB Application
 │   ├── poke-db-previews.yaml                # ApplicationSet for PR previews
@@ -110,13 +109,14 @@ graph TD
 
 ### Key Components
 
-1. **Vault CE Server (`platform/vault/vault-server.yaml`)**:
-   - Deployed as a single-replica StatefulSet in the `vault` namespace with a 10Gi PVC mounted at `/vault/data`.
-   - File storage engine with UI enabled, exposed via ClusterIP Service `vault:8200` and Envoy Gateway routes (`vault.pttr-dev-lab`, `vault.webwizardssoftware.com`).
-   - Configured with `system:auth-delegator` RBAC for token reviews during Kubernetes authentication.
+1. **Vault CE Server Helm Application (`bootstrap/vault.yaml`)**:
+   - Deployed via official `hashicorp/vault` Helm chart as a single-replica StatefulSet in the `vault` namespace with a 10Gi PVC mounted at `/vault/data`.
+   - File storage engine with UI enabled, exposed via ClusterIP Service `vault:8200` and Envoy Gateway routes (`vault.pttr-dev-lab`, `vault.webwizardssoftware.com`) declared in `platform/vault/httproute.yaml`.
+   - Upstream Helm packaging maintains StatefulSet, ConfigMap, and Service lifecycle cleanly.
 
-2. **Vault Secrets Operator (`platform/vault/vault-secrets-operator.yaml`)**:
-   - Deploys the VSO controller manager and custom resource definitions (`VaultConnection`, `VaultAuth`, `VaultStaticSecret`, `VaultPKISecret`, `VaultDynamicSecret`).
+2. **Vault Secrets Operator Helm Application (`bootstrap/vault-secrets-operator.yaml`)**:
+   - Deployed via official `hashicorp/vault-secrets-operator` Helm chart with `defaultVaultConnection` configured to the in-cluster Vault server.
+   - Installs and manages VSO custom resource definitions (`VaultConnection`, `VaultAuth`, `VaultStaticSecret`, `VaultPKISecret`, `VaultDynamicSecret`).
    - Reconciles secrets continuously and updates native Kubernetes Secrets in workload namespaces.
    - Manages zero-downtime rolling updates via `rolloutRestartTargets` when secret values change in Vault.
 

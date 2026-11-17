@@ -80,9 +80,9 @@ elif command -v kubectl &> /dev/null; then
   if ! kubectl get pod "${VAULT_POD}" -n "${VAULT_NAMESPACE}" &> /dev/null; then
     echo "❌ Error: Pod '${VAULT_POD}' does not exist in namespace '${VAULT_NAMESPACE}'."
     echo ""
-    echo "👉 To resolve this, apply the Vault platform manifests to your cluster first:"
-    echo "   kubectl apply -k platform/vault"
-    echo "   (or trigger an ArgoCD synchronization of the platform application)"
+    echo "👉 To resolve this, apply the Vault Helm application to your cluster first:"
+    echo "   kubectl apply -f bootstrap/vault.yaml"
+    echo "   (or trigger an ArgoCD synchronization of the vault application)"
     exit 1
   fi
 
