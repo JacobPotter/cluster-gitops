@@ -8,6 +8,63 @@ metadata:
     app.kubernetes.io/part-of: argocd
 data:
   url: "https://argo.webwizardssoftware.com"
+  resource.customizations.health.secrets.hashicorp.com_VaultStaticSecret: |
+    hs = {}
+    if obj.status ~= nil and obj.status.conditions ~= nil then
+      for _, condition in ipairs(obj.status.conditions) do
+        if condition.type == "SecretSynced" and condition.status == "True" then
+          hs.status = "Healthy"
+          hs.message = condition.message or "Secret synced successfully"
+          return hs
+        elseif condition.type == "SecretSyncError" and condition.status == "True" then
+          hs.status = "Degraded"
+          hs.message = condition.message or "Secret synchronization error"
+          return hs
+        end
+      end
+    end
+    hs.status = "Progressing"
+    hs.message = "Waiting for secret synchronization"
+    return hs
+
+  resource.customizations.health.secrets.hashicorp.com_VaultAuth: |
+    hs = {}
+    if obj.status ~= nil and obj.status.conditions ~= nil then
+      for _, condition in ipairs(obj.status.conditions) do
+        if condition.type == "Valid" and condition.status == "True" then
+          hs.status = "Healthy"
+          hs.message = condition.message or "VaultAuth is valid"
+          return hs
+        elseif condition.type == "Valid" and condition.status == "False" then
+          hs.status = "Degraded"
+          hs.message = condition.message or "VaultAuth validation failed"
+          return hs
+        end
+      end
+    end
+    hs.status = "Progressing"
+    hs.message = "Waiting for auth validation"
+    return hs
+
+  resource.customizations.health.secrets.hashicorp.com_VaultConnection: |
+    hs = {}
+    if obj.status ~= nil and obj.status.conditions ~= nil then
+      for _, condition in ipairs(obj.status.conditions) do
+        if condition.type == "Accepted" and condition.status == "True" then
+          hs.status = "Healthy"
+          hs.message = condition.message or "VaultConnection is accepted"
+          return hs
+        elseif condition.type == "Accepted" and condition.status == "False" then
+          hs.status = "Degraded"
+          hs.message = condition.message or "VaultConnection rejected"
+          return hs
+        end
+      end
+    end
+    hs.status = "Progressing"
+    hs.message = "Waiting for connection status"
+    return hs
+
   resource.customizations.ignoreResourceUpdates.ConfigMap: |
     jqPathExpressions:
       - '.metadata.annotations."cluster-autoscaler.kubernetes.io/last-updated"'

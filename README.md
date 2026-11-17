@@ -58,6 +58,8 @@ cluster-gitops/
 │   │   └── kustomization.yaml
 │   └── kustomization.yaml                   # Platform root kustomization
 ├── bootstrap/                               # Argo CD Root Applications
+│   ├── kustomization.yaml                   # Aggregator Kustomization tracking all root applications
+│   ├── root-app.yaml                        # Root App-of-Apps Application
 │   ├── vault.yaml                           # Official HashiCorp Vault Helm chart Application
 │   ├── vault-secrets-operator.yaml          # Official HashiCorp VSO Helm chart Application
 │   ├── open-webui.yaml                      # Application managing Open WebUI (apps/open-webui/overlays/prod)
@@ -297,6 +299,38 @@ Open WebUI provides a ChatGPT-compatible web interface connected to the host Oll
      `apps/poke-db/overlays/preview`, deploying PR-specific images (`:pr-<N>`), and exposing
      traffic under `pr-<N>.poke-db.pttr-dev-lab` and `pr-<N>.poke-db.webwizardssoftware.com`.
    - Removing the `preview` label or closing the PR automatically destroys the preview environment.
+
+---
+
+## App-of-Apps & Cluster Bootstrap Flow
+
+The repository adopts the **App-of-Apps pattern** via `bootstrap/` to manage, register, and synchronize all applications declaratively.
+
+### 1. Unified Bootstrap Deployment
+
+To deploy or register all applications across the cluster in a single step:
+
+```bash
+# Apply root bootstrap aggregator (registers all platform, storage, secret, and application workloads)
+kubectl apply -k bootstrap/
+```
+
+This registers:
+- `root-bootstrap` (`bootstrap/root-app.yaml`)
+- `platform` (`bootstrap/platform.yaml` tracking `platform/`)
+- `minio` (`bootstrap/minio.yaml` tracking `platform/minio/`)
+- `vault` (`bootstrap/vault.yaml` tracking official `hashicorp/vault` Helm chart)
+- `vault-secrets-operator` (`bootstrap/vault-secrets-operator.yaml` tracking official `hashicorp/vault-secrets-operator` Helm chart)
+- `poke-db-prod` (`bootstrap/poke-db-prod.yaml` tracking `apps/poke-db/overlays/prod`)
+- `poke-db-previews` (`bootstrap/poke-db-previews.yaml` ApplicationSet)
+- `open-webui` (`bootstrap/open-webui.yaml` tracking `apps/open-webui/overlays/prod`)
+
+### 2. Custom ArgoCD Health Checks for Vault Secrets Operator
+
+To ensure ArgoCD accurately evaluates the health of custom resources without false-positive degraded states, custom Lua scripts are configured in `platform/argocd/argocd-cm.yaml`:
+- `secrets.hashicorp.com/VaultStaticSecret`: Evaluates `SecretSynced=True` as `Healthy` and `SecretSyncError=True` as `Degraded`.
+- `secrets.hashicorp.com/VaultAuth`: Evaluates `Valid=True` as `Healthy` and `Valid=False` as `Degraded`.
+- `secrets.hashicorp.com/VaultConnection`: Evaluates `Accepted=True` as `Healthy` and `Accepted=False` as `Degraded`.
 
 ---
 

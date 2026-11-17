@@ -86,14 +86,18 @@ elif command -v kubectl &> /dev/null; then
     exit 1
   fi
 
-  echo "⏳ Waiting for pod ${VAULT_POD} to reach Running / Ready state..."
-  if ! kubectl wait --for=condition=ready "pod/${VAULT_POD}" -n "${VAULT_NAMESPACE}" --timeout=60s &> /dev/null; then
+  echo "⏳ Waiting for pod ${VAULT_POD} to reach Running state..."
+  for i in {1..30}; do
     POD_PHASE=$(kubectl get pod "${VAULT_POD}" -n "${VAULT_NAMESPACE}" -o jsonpath='{.status.phase}' 2>/dev/null || echo "Unknown")
-    if [[ "${POD_PHASE}" != "Running" ]]; then
-      echo "❌ Error: Pod ${VAULT_POD} is in phase '${POD_PHASE}' (expected 'Running')."
-      echo "   Check pod events: kubectl describe pod -n ${VAULT_NAMESPACE} ${VAULT_POD}"
-      exit 1
+    if [[ "${POD_PHASE}" == "Running" ]]; then
+      break
     fi
+    sleep 1
+  done
+  if [[ "${POD_PHASE}" != "Running" ]]; then
+    echo "❌ Error: Pod ${VAULT_POD} is in phase '${POD_PHASE}' (expected 'Running')."
+    echo "   Check pod events: kubectl describe pod -n ${VAULT_NAMESPACE} ${VAULT_POD}"
+    exit 1
   fi
 else
   echo "❌ Error: Neither 'vault' nor 'kubectl' CLI is available."

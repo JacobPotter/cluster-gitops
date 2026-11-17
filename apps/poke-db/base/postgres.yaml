@@ -35,25 +35,39 @@ spec:
     spec:
       serviceAccountName: poke-db-sa
       securityContext:
-        runAsUser: 999
-        runAsGroup: 999
         fsGroup: 999
+        appArmorProfile:
+          type: Unconfined
+        seccompProfile:
+          type: Unconfined
       terminationGracePeriodSeconds: 60
       initContainers:
         - name: clear-stale-pid
           image: postgres:16
-          command: ["sh", "-c", "rm -f /var/lib/postgresql/data/pgdata/postmaster.pid"]
+          command: ["sh", "-c", "rm -f /var/lib/postgresql/data/pgdata_prod/postmaster.pid"]
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
       containers:
         - name: postgres
           image: postgres:16
+          command:
+            - bash
+            - -c
+            - 'docker-entrypoint.sh postgres & pid=$!; trap "kill -INT $pid" INT TERM; wait $pid'
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+                - SYS_PTRACE
+                - KILL
           ports:
             - containerPort: 5432
           env:
             - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
+              value: /var/lib/postgresql/data/pgdata_prod
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
@@ -75,13 +89,14 @@ spec:
           startupProbe:
             exec:
               command: ["pg_isready", "-U", "postgres", "-d", "postgres"]
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 5
             timeoutSeconds: 3
-            failureThreshold: 120
+            failureThreshold: 60
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "postgres", "-d", "postgres"]
+            initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
           livenessProbe:
