@@ -327,10 +327,12 @@ This registers:
 
 ### 2. Custom ArgoCD Health Checks for Vault Secrets Operator
 
-To ensure ArgoCD accurately evaluates the health of custom resources without false-positive degraded states, custom Lua scripts are configured in `platform/argocd/argocd-cm.yaml`:
-- `secrets.hashicorp.com/VaultStaticSecret`: Evaluates `SecretSynced=True` as `Healthy` and `SecretSyncError=True` as `Degraded`.
-- `secrets.hashicorp.com/VaultAuth`: Evaluates `Valid=True` as `Healthy` and `Valid=False` as `Degraded`.
-- `secrets.hashicorp.com/VaultConnection`: Evaluates `Accepted=True` as `Healthy` and `Accepted=False` as `Degraded`.
+To ensure ArgoCD accurately evaluates the health of custom resources without false-positive progressing or degraded states, custom Lua scripts are configured in `platform/argocd/argocd-cm.yaml` aligned with the VSO OpenAPI status schemas:
+- `secrets.hashicorp.com/VaultConnection`: Evaluates `status.valid == true` as `Healthy` and `status.valid == false` or `status.error` as `Degraded`.
+- `secrets.hashicorp.com/VaultAuth`: Evaluates `status.valid == true` as `Healthy` and `status.valid == false` or `status.error` as `Degraded`.
+- `secrets.hashicorp.com/VaultStaticSecret`: Evaluates presence of `status.secretMAC` as `Healthy` and `status.error` as `Degraded`.
+- `secrets.hashicorp.com/VaultDynamicSecret`: Evaluates presence of `status.secretMAC` as `Healthy` and `status.error` as `Degraded`.
+- `secrets.hashicorp.com/VaultPKISecret`: Evaluates presence of `status.secretMAC` as `Healthy` and `status.error` as `Degraded`.
 
 ---
 
